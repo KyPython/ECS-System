@@ -1,26 +1,80 @@
-package ecs.ecs.engine;
+package ecs;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class GameEngine {
+
     public static void main(String[] args) {
+        new GameEngine().run();
+    }
+
+    public void run() {
         ECSWorld world = new ECSWorld();
-        Entity player = world.createEntity();
-        world.positions.put(player.getId(), new PositionComponent(0, 0));
-        world.velocities.put(player.getId(), new VelocityComponent(1, 1));
-        world.healths.put(player.getId(), new HealthComponent(10));
+        List<System> systems = new ArrayList<>();
 
-        Entity enemy = world.createEntity();
-        world.positions.put(enemy.getId(), new PositionComponent(5, 5));
-        world.velocities.put(enemy.getId(), new VelocityComponent(-1, 0));
-        world.healths.put(enemy.getId(), new HealthComponent(5));
+        // Add systems
+        systems.add(new MovementSystem());
 
-        MovementSystem moveSys = new MovementSystem();
-        HealthSystem healthSys = new HealthSystem();
+        // Initialize state (LOG: Entity Creation)
+        long initialFrame = 1;
+        int player = world.createEntity(initialFrame);
+        world.positions.put(player, new PositionComponent(10, 5));
+        world.velocities.put(player, new VelocityComponent(0.5f, 0.2f));
 
-        for (int tick = 0; tick < 3; tick++) {
-            System.out.println("-- Tick " + tick + " --");
-            moveSys.update(world);
-            healthSys.update(world);
+        // Game Loop Variables
+        long frameId = initialFrame;
+        double targetFPS = 60.0;
+        double targetFrameTimeMs = 1000.0 / targetFPS; // 16.67ms
+        double deltaTime = targetFrameTimeMs / 1000.0; // Delta time in seconds
+
+        System.out.println("\n--- Starting Observable Game Engine ---\n");
+
+        // Simple loop for demonstration
+        for (int i = 0; i < 60; i++) {
+            frameId++;
+
+            // Start of Frame Tracing & Metric
+            long frameStartTime = System.nanoTime();
+
+            // LOG: Frame Start with Trace ID
+            System.out.println(String.format("\n[TRACE_%d] [LOOP_START] Frame #%d", frameId, frameId));
+
+            // --- 1. System Updates (The core logic) ---
+            for (System system : systems) {
+                // Pass the Trace ID to every System update
+                system.update(deltaTime, world, frameId);
+            }
+
+            // --- 2. End of Frame Metrics & Alerting ---
+            long frameDurationNano = System.nanoTime() - frameStartTime;
+            double frameDurationMs = frameDurationNano / 1_000_000.0;
+            double currentFPS = 1000.0 / frameDurationMs;
+
+            // LOG: Frame End with Metrics
+            System.out.println(String.format(
+                    "[TRACE_%d] [LOOP_END] Completed in %.2fms | FPS: %.1f",
+                    frameId, frameDurationMs, currentFPS));
+
+            // OBSERVABILITY: ALERTING LOGIC (Session 4)
+            if (currentFPS < 30.0) {
+                System.err.println(String.format(
+                        "*** [HIGH_ALERT] Frame #%d: FPS dropped below 30.0! Current: %.1f ***",
+                        frameId, currentFPS));
+            }
+
+            // Simple thread sleep to simulate frame timing (optional, for real-time control)
+            try {
+                long sleepTimeMs = (long) (targetFrameTimeMs - frameDurationMs);
+                if (sleepTimeMs > 0) {
+                    TimeUnit.MILLISECONDS.sleep(sleepTimeMs);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
+
+        System.out.println("\n--- Simulation Complete ---");
     }
 }
-

@@ -1,4 +1,4 @@
-package ecs.ecs.components;
+package ecs.
 
 public class Component {
 }

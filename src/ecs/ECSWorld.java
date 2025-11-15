@@ -1,17 +1,30 @@
 package ecs;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ECSWorld {
-    private int nextEntityId = 0;
-    private final Set<Integer> entities = new HashSet<>();
-    public final Map<Integer, PositionComponent> positions = new HashMap<>();
-    public final Map<Integer, VelocityComponent> velocities = new HashMap<>();
-    public final Map<Integer, HealthComponent> healths = new HashMap<>();
+    private final AtomicInteger nextEntityId = new AtomicInteger(0);
 
-    public Entity createEntity() {
-        int id = nextEntityId++;
-        entities.add(id);
-        return new Entity(id);
+    // Simplified Component Storage (as mentioned in your README)
+    public Map<Integer, PositionComponent> positions = new HashMap<>();
+    public Map<Integer, VelocityComponent> velocities = new HashMap<>();
+
+    public int createEntity(long frameId) {
+        int entityId = nextEntityId.incrementAndGet();
+
+        // LOG: Entity Creation Lifecycle
+        System.out.println(String.format("[TRACE_%d] [ENTITY_CREATE] ID: %d", frameId, entityId));
+
+        return entityId;
+    }
+
+    public void destroyEntity(int entityId, long frameId) {
+        // LOG: Entity Destruction Lifecycle
+        System.out.println(String.format("[TRACE_%d] [ENTITY_DESTROY] ID: %d", frameId, entityId));
+
+        positions.remove(entityId);
+        velocities.remove(entityId);
     }
 }
